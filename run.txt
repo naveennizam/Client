@@ -1,0 +1,23 @@
+#########  FIRST CMD #########
+
+C:\Users\User>cd ../
+
+C:\Users>cd ../
+
+C:\>cd redis
+
+C:\Redis>redis-server.exe --maxheap 2gb
+
+#########  SECOND CMD #########
+
+
+C:\Users\User>cd ../
+
+C:\Users>cd ../
+
+C:\>cd Redis
+
+C:\Redis>redis-cli.exe
+
+127.0.0.1:6379> ping
+PONG
