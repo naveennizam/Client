@@ -50,27 +50,36 @@
 require("dotenv").config();
 var GoogleStrategy = require('passport-google-oauth20').Strategy;
 const passport = require("passport");
+var FacebookStrategy = require('passport-facebook');
 
-
+authUser = (request, accessToken, refreshToken, profile, done) => {
+  return done(null, profile);
+}
 passport.use(new GoogleStrategy({
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.SECRET_KEY,
   callbackURL: "http://localhost:8000/auth/google/callback",
   passReqToCallback: true,
-  scope: ["profile", "email"],
-},
-  function (accessToken, refreshToken, profile, cb) {
-    callback(null, profile);
-    // User.findOrCreate({ googleId: profile.id }, function (err, user) {
-    //   return cb(err, user);
-    // })
-  }
+  scope: [ "profile","email"],
+},  authUser
+));
+
+passport.use(new FacebookStrategy({
+  clientID: '727429922621215',  //FACEBOOK_APP_ID
+  clientSecret: 'f4ec0dcd35f7d73f9640dde330ca26dd',  //FACEBOOK_APP_SECRET
+  callbackURL: "http://localhost:8000/auth/facebook/callback",
+  scope: ["email"],
+ 
+},  authUser
 
 ));
+
 passport.serializeUser((user, done) => {
+ //console.log('serializeUser',user)
   done(null, user)
 })
 
 passport.deserializeUser((user, done) => {
+  console.log('deserializeUser',user)
   done(null, user)
 })
