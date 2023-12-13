@@ -4,7 +4,7 @@
 // passport.use(new GoogleStrategy({
 //     clientID: process.env.CLIENT_ID,
 //     clientSecret: process.env.SECRET_KEY,
-//     callbackURL: 'https://localhost:8000/oauth2/redirect/google'
+//     callbackURL: 'https://localhost:8000/oauth2/redirect/google' /success
 //   },
 // //   function(issuer, profile, cb) {
 // //     db.get('SELECT * FROM federated_credentials WHERE provider = ? AND subject = ?', [
@@ -58,7 +58,7 @@ authUser = (request, accessToken, refreshToken, profile, done) => {
 passport.use(new GoogleStrategy({
   clientID: process.env.CLIENT_ID,
   clientSecret: process.env.SECRET_KEY,
-  callbackURL: "http://localhost:8000/auth/google/callback",
+  callbackURL: "http://localhost:8000/success",
   passReqToCallback: true,
   scope: [ "profile","email"],
 },  authUser
@@ -67,7 +67,7 @@ passport.use(new GoogleStrategy({
 passport.use(new FacebookStrategy({
   clientID: '727429922621215',  //FACEBOOK_APP_ID
   clientSecret: 'f4ec0dcd35f7d73f9640dde330ca26dd',  //FACEBOOK_APP_SECRET
-  callbackURL: "http://localhost:8000/auth/facebook/callback",
+  callbackURL: "http://localhost:8000/successed",
   scope: ["email"],
  
 },  authUser
