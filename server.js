@@ -51,7 +51,7 @@ app.get("/", (req, res) => {
 app.get('/auth/google', passport.authenticate("google", ["profile", "email"]));
 
 
-app.get('/auth/google/callback', passport.authenticate('google', {
+app.get('/success', passport.authenticate('google', {
     failureRedirect: '/error.html'
 }),
     checkAuthenticated = (req, res, next) => {
@@ -76,7 +76,7 @@ app.get('/auth/google/callback', passport.authenticate('google', {
 app.get('/login/facebook', passport.authenticate('facebook', {
     scope: ['email']
 }));
-app.get('/auth/facebook/callback', passport.authenticate('facebook', {
+app.get('/successed', passport.authenticate('facebook', {
     failureRedirect: '/error.html'
 }),
     checkAuthenticated = (req, res, next) => {
@@ -101,7 +101,7 @@ app.post("/logout", async (req, res, next) => {
         req.logout(req.user, function (err) {
             console.log("logout callback called")
             req.session.destroy(function (err) {
-                res.redirect('/');
+                res.render('logout');
             });
             if (err) {
                 console.log("error", err)
