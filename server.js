@@ -17,14 +17,14 @@ var session = require('express-session');
 
 
 app.set("view engine", "ejs")
-app.use(flash())
+app.use(express.static(path.join(__dirname,"public")))
 
 app.set('trust proxy', 1) // trust first proxy
 app.use(session({
     secret: 'keyboard cat',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true }
+    cookie: { secure: false }
 }))
 
 app.use(passport.initialize()) // init passport on every route call
@@ -33,7 +33,7 @@ app.get('/login/facebook', passport.authenticate('facebook', {
     scope: ['email', 'user_location']
 }));
 app.use(express.json())
-console.log((path.join(__dirname, './')));
+
 app.get("/", (req, res) => {
     let r = path.join(__dirname, './')
     sess = req.session;
@@ -54,24 +54,42 @@ app.get('/auth/google', passport.authenticate("google", ["profile", "email"]));
 app.get('/success', passport.authenticate('google', {
     failureRedirect: '/error.html'
 }),
-    checkAuthenticated = (req, res, next) => {
+    // checkAuthenticated = (req, res, next) => {
 
-        if (req.isAuthenticated()) { return next() }
-        res.redirect("/error.html")
-    },
-    function async(req, res) {
+    //     if (req.isAuthenticated()) { return next() }
+    //     res.redirect("/error.html")
+    // },
+    async (req, res) => {
         var userString = (req.user)
 
-        jwt.sign({ userString }, 'secretKey', { expiresIn: '5min' }, (err, token) => {
-            //   console.log(token);
-            //  localStorage.setItem("token",token)
-        })
+        // jwt.sign({ userString }, 'secretKey', { expiresIn: '5min' }, (err, token) => {
+        //     //   console.log(token);
+        //     //  localStorage.setItem("token",token)
+        // })
 
-        res.render("sign", { title: req.user.displayName, provider: req.user.provider })
+        res.redirect("/sign")
 
 
     }
 );
+app.get('/sign', async (req, res) => {
+
+   
+    //     if (req.isAuthenticated()) {
+    //         res.render("sign", { title: req.user.displayName, provider: req.user.provider })
+
+    //     }
+    //     else {
+    //         res.redirect("/error.html")
+    //     }
+
+console.log(req.user);
+    if (req.isAuthenticated()) {
+        res.render(path.join(__dirname, 'sign.ejs'), { title: req.user.displayName, provider: req.user.provider })
+    }
+    else res.redirect("/error.html")
+
+})
 
 app.get('/login/facebook', passport.authenticate('facebook', {
     scope: ['email']
@@ -124,9 +142,7 @@ const fakeUser = {
     email: "alia@gmail.com",
     password: "12345"
 }
-app.get('sign', async (req, res) => {
-    console.log('qwerty')
-})
+
 app.post("/login", async (req, res) => {
     try {
         await client.on('error', err => console.log('Redis Client Error', err))
