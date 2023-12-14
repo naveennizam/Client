@@ -1,85 +1,70 @@
-//var passport = require('passport');
-// var GoogleStrategy = require('passport-google-oidc');
-
-// passport.use(new GoogleStrategy({
-//     clientID: process.env.CLIENT_ID,
-//     clientSecret: process.env.SECRET_KEY,
-//     callbackURL: 'https://localhost:8000/oauth2/redirect/google' /success
-//   },
-// //   function(issuer, profile, cb) {
-// //     db.get('SELECT * FROM federated_credentials WHERE provider = ? AND subject = ?', [
-// //       issuer,
-// //       profile.id
-// //     ], function(err, cred) {
-// //       if (err) { return cb(err); }
-// //       if (!cred) {
-// //         // The Google account has not logged in to this app before.  Create a
-// //         // new user record and link it to the Google account.
-// //         db.run('INSERT INTO users (name) VALUES (?)', [
-// //           profile.displayName
-// //         ], function(err) {
-// //           if (err) { return cb(err); }
-
-// //           var id = this.lastID;
-// //           db.run('INSERT INTO federated_credentials (user_id, provider, subject) VALUES (?, ?, ?)', [
-// //             id,
-// //             issuer,
-// //             profile.id
-// //           ], function(err) {
-// //             if (err) { return cb(err); }
-// //             var user = {
-// //               id: id.toString(),
-// //               name: profile.displayName
-// //             };
-// //             return cb(null, user);
-// //           });
-// //         });
-// //       } else {
-// //         // The Google account has previously logged in to the app.  Get the
-// //         // user record linked to the Google account and log the user in.
-// //         db.get('SELECT * FROM users WHERE id = ?', [ cred.user_id ], function(err, user) {
-// //           if (err) { return cb(err); }
-// //           if (!user) { return cb(null, false); }
-// //           return cb(null, user);
-// //         });
-// //       }
-// //     }
-// //   }
-// ));
-
 require("dotenv").config();
 var GoogleStrategy = require('passport-google-oauth20').Strategy;
 const passport = require("passport");
 var FacebookStrategy = require('passport-facebook');
+var { connectToDatabase } = require("./database/connection")
+authUser = async (request, accessToken, refreshToken, profile, done) => {
 
-authUser = (request, accessToken, refreshToken, profile, done) => {
+  let provider_id = profile.id
+  let json = {
+    provider_id: profile.id,
+    name: profile.displayName,
+    email: profile.emails[0].value,
+    provider: profile.provider,
+  }
+;
+  const q = async (json) => {
+    let client = await connectToDatabase();
+
+
+
+    const rows = await client.query(`INSERT INTO  client ( name, email, provider,  provider_id) VALUES ('${json.name}', '${json.email}', '${json.provider}', ${json.provider_id} )`);
+    console.log(rows);
+
+  };
+
+  const check = async (provider_id) => {
+    let client = await connectToDatabase();
+
+    let sql = (`SELECT * FROM client where provider_id = ${provider_id}`);
+
+    const data = await client.query(sql);
+
+    return data.rows
+
+  };
+  let checkedInTable = await check(provider_id)
+
+  if (checkedInTable.length > 0) { console.log('welcome!') }
+  else { q(json) }
+
   return done(null, profile);
 }
 passport.use(new GoogleStrategy({
-  clientID: process.env.CLIENT_ID,
-  clientSecret: process.env.SECRET_KEY,
-  callbackURL: "http://localhost:8000/success",
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_SECRET_KEY,
+  callbackURL: process.env.GOOGLE_CALL_BACK,
   passReqToCallback: true,
-  scope: [ "profile","email"],
-},  authUser
+  scope: ["profile", "email"],
+}, authUser
 ));
 
 passport.use(new FacebookStrategy({
-  clientID: '727429922621215',  //FACEBOOK_APP_ID
-  clientSecret: 'f4ec0dcd35f7d73f9640dde330ca26dd',  //FACEBOOK_APP_SECRET
-  callbackURL: "http://localhost:8000/successed",
+  clientID: process.env.FACEBOOK_APP_ID,
+  clientSecret: process.env.FACEBOOK_APP_SECRET,
+  callbackURL: process.env.FACEBOOK_CALL_BACK,
   scope: ["email"],
- 
-},  authUser
+
+}, authUser
 
 ));
 
 passport.serializeUser((user, done) => {
- //console.log('serializeUser',user)
+  //console.log('serializeUser',user)
   done(null, user)
 })
 
 passport.deserializeUser((user, done) => {
-  console.log('deserializeUser',user)
+  //console.log('deserializeUser',user)
   done(null, user)
 })
