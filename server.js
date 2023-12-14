@@ -1,8 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-var flash = require('connect-flash');
-// const authRoute = require("./routes/auth");
 const cookieSession = require("cookie-session");
 const app = express();
 const body_parser = require("body-parser")
@@ -14,10 +12,11 @@ require("./passport")
 const passport = require("passport");
 const path = require('path')
 var session = require('express-session');
+const  connection  = require('./database/connection');
 
 
 app.set("view engine", "ejs")
-app.use(express.static(path.join(__dirname,"public")))
+app.use(express.static(path.join(__dirname, "public")))
 
 app.set('trust proxy', 1) // trust first proxy
 app.use(session({
@@ -39,57 +38,48 @@ app.get("/", (req, res) => {
     sess = req.session;
     sess.email;
     sess.username;
-
-    res.sendFile(r + `indexs.html`)
+    // if (client.connect()) { res.sendFile(r + `indexs.html`) }
+    // else { res.sendFile(r + `indexs.html`) }
+    res.sendFile(r + `indexs.html`) 
 })
-// app.get('/oauth2/redirect/facebook',
-//   passport.authenticate('facebook', { failureRedirect: '/login', failureMessage: true }),
-//   function(req, res) {
-//     res.redirect('/');
-//   });
 
 app.get('/auth/google', passport.authenticate("google", ["profile", "email"]));
 
 
 app.get('/success', passport.authenticate('google', {
     failureRedirect: '/error.html'
-}),
-    // checkAuthenticated = (req, res, next) => {
+}), checkAuthenticated = (req, res, next) => {
 
-    //     if (req.isAuthenticated()) { return next() }
-    //     res.redirect("/error.html")
-    // },
-    async (req, res) => {
-        var userString = (req.user)
+    if (req.isAuthenticated()) { return next() }
+    res.redirect("/error.html")
+},
+    function async(req, res) {
 
-        // jwt.sign({ userString }, 'secretKey', { expiresIn: '5min' }, (err, token) => {
-        //     //   console.log(token);
-        //     //  localStorage.setItem("token",token)
-        // })
+        let email = req.user.emails[0].value
 
-        res.redirect("/sign")
+        jwt.sign({ email }, process.env.JWT_SECRET_KEY, { expiresIn: '120s' }, async (err, token) => {
+            try {
+                client.on('error', err => console.log('Redis Client Error', err))
+                client.connect()
 
+                new Headers({ 'Content-Type': 'application/json', 'Authorization': 'secretKey ' + token });
+
+                let hi = await client.set(email, token)
+
+                res.cookie("jwt-id", hi, { maxAge: 900000, httpOnly: true })
+
+
+                res.redirect("/sign")
+
+
+                return res.json({ token })
+            }
+            catch (err) { console.log(err) }
+        })
 
     }
 );
-app.get('/sign', async (req, res) => {
 
-   
-    //     if (req.isAuthenticated()) {
-    //         res.render("sign", { title: req.user.displayName, provider: req.user.provider })
-
-    //     }
-    //     else {
-    //         res.redirect("/error.html")
-    //     }
-
-console.log(req.user);
-    if (req.isAuthenticated()) {
-        res.render(path.join(__dirname, 'sign.ejs'), { title: req.user.displayName, provider: req.user.provider })
-    }
-    else res.redirect("/error.html")
-
-})
 
 app.get('/login/facebook', passport.authenticate('facebook', {
     scope: ['email']
@@ -103,15 +93,64 @@ app.get('/successed', passport.authenticate('facebook', {
         res.redirect("/error.html")
     },
     function async(req, res) {
-        var userString = (req.user)
-        jwt.sign({ userString }, 'secretKey', { expiresIn: '5min' }, (err, token) => {
-            //   console.log(token);
-        })
-        res.render("sign", { title: req.user.displayName, provider: req.user.provider })
+      
+        let id = req.user.id
+        jwt.sign({ id }, process.env.JWT_SECRET_KEY, { expiresIn: '120s' }, async (err, token) => {            
+            // TOKEN WILL BE EXPIRE IN 2 MINUTE
+            
+            try {
+               
+                client.connect();
+                new Headers({ 'Content-Type': 'application/json', 'Authorization': `${process.env.JWT_SECRET_KEY}  `+ token });
 
+                let hi = await client.set(req.user.id, token)
+
+                res.cookie("jwt-id", hi, { maxAge: 900000, httpOnly: true })
+
+
+                res.redirect("/sign")
+
+
+                return res.json({ token })
+            }
+            catch (err) { console.log(err) }
+        })
 
     }
 );
+
+function verifyToken(req, res, next) {
+    const bearerHeader = req.headers['authorization']
+    if (typeof bearerHeader !== undefined) {
+        const bearer = bearerHeader.split(" ");
+        const token = bearer[1]
+        req.token = token
+
+        next()
+    }
+    else { res.send({ result: 'not valid' }) }
+}
+app.post("/provide", verifyToken, async (req, res) => {
+    jwt.verify(req.token, process.env.JWT_SECRET_KEY, (err, authData) => {
+        if (err) { res.send({ result: "INVALID" }) }
+        else {
+            { res.send({ result: "ACCESSED", authData }) }
+        }
+    })
+
+
+
+})
+
+app.get('/sign', async (req, res) => {
+
+    if (req.isAuthenticated()) {
+        client.disconnect()
+        res.render(path.join(__dirname, 'sign.ejs'), { title: req.user.displayName, provider: req.user.provider })
+    }
+    else res.redirect("/error.html")
+
+})
 app.post("/logout", async (req, res, next) => {
 
     try {
@@ -134,58 +173,6 @@ app.post("/logout", async (req, res, next) => {
     }
 
 })
-
-
-
-const fakeUser = {
-    name: "ALI",
-    email: "alia@gmail.com",
-    password: "12345"
-}
-
-app.post("/login", async (req, res) => {
-    try {
-        await client.on('error', err => console.log('Redis Client Error', err))
-        client.connect()
-        //  let value = await client.get('counter');
-        ////  value = parseInt(value)
-        // console.log('GET value',value );
-
-        //  await  client.get("counter",async (er,data) => {
-        //    console.log('data',data);
-        /// let data =   client.set("counter", parseInt(value) + 1)
-        // console.log('SET value',data);
-        await jwt.sign(fakeUser, "secret", { expiresIn: "1d" }, async (err, token) => {
-
-            let hi = await client.set(fakeUser.email, token)
-
-            let g = res.cookie("jwt-id", hi, { maxAge: 900000, httpOnly: true })
-            //   console.log(g);
-            client.disconnect()
-            return res.send("logged in")
-
-
-        })
-        //  })
-    }
-
-
-
-    catch (err) { console.log(err) }
-})
-
-// await client.set('key', 'value');
-// const value = await client.get('key');
-// await client.disconnect();
-
-// app.use(
-// 	cookieSession({
-// 		name: "session",
-// 		keys: ["cyberwolve"],
-// 		maxAge: 60 ,
-// 	})
-// );
-
 
 
 const port = process.env.PORT || 8080;
