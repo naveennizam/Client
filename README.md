@@ -10,14 +10,17 @@ npx nodemon server.js
 ```
 
 In Browswer:
+```bash
 Open [http://localhost:8000]
-
+```
 
 ## Postgres DB 
  #### database "auth"
  ####  Table "client"
  
  ### Table Query
+
+ ```bash
    -- Table: public.client
 
 -- DROP TABLE IF EXISTS public.client;
@@ -37,4 +40,4 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.client
     OWNER to postgres;
- 
+ ```
