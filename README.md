@@ -16,8 +16,8 @@ Open [http://localhost:8000]
 
 ## Postgres DB 
 ```bash
- #### database "auth"
- ####  Table "client"
+ database --> "auth"
+ Table    --> "client"
  ```
 
  ### Table Query
